@@ -3,7 +3,8 @@ from __future__ import annotations
 import urllib.parse
 from dataclasses import dataclass
 from typing import Dict, Iterable, List
-
+from typing import Any, Dict, Iterable, List
+from requests import Response
 import gitlab
 from loguru import logger
 
@@ -42,7 +43,11 @@ class GitLabClient:
     def get_group_id_by_path(self, full_path: str) -> int:
         """Resolve a group id by its full path, handling URL encoding safely."""
         encoded = urllib.parse.quote_plus(full_path.strip("/"))
-        data = self._gl.http_get(f"/groups/{encoded}")
+        raw = self._gl.http_get(f"/groups/{encoded}")
+        if isinstance(raw, Response):
+            data: dict[str, Any] = raw.json()
+        else:
+            data = raw
         group_id = int(data["id"])
         logger.debug("Resolved group {} -> id {}", full_path, group_id)
         return group_id

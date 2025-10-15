@@ -19,6 +19,7 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
+    TaskID,
 )
 
 from .gitlab_api import Project
@@ -154,9 +155,9 @@ def clone_all(
         TimeRemainingColumn(),
         console=console,
     ) as progress:
-        overall = progress.add_task(escape("all projects"), total=total)
+        overall: TaskID = progress.add_task(escape("all projects"), total=total)
 
-        sub_tasks: Dict[str, int] = {}
+        sub_tasks: Dict[str, TaskID] = {}
         for name, items in sorted(buckets.items(), key=_bucket_sort_key):
             # escape() ensures correct output, even if the name contains [] and others.
             label = escape(name or ROOT_BUCKET)

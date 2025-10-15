@@ -16,13 +16,11 @@ Set `GITLAB_TOKEN` to a Personal Access Token with scopes `read_api` and `read_r
 export GITLAB_TOKEN=glpat_xxx
 export GLBAK_BASE_URL=https://gitlab.mycompany.com
 
-gitlab-backup my-root/group/path \
-  --base-url https://gitlab.com \
-  --dest ./backups
+gitlab-backup my-root/group/path
 ```
 
 Dry run:
 
 ```bash
-gitlab-backup backup company/legacy --dry-run
+gitlab-backup my-root/group/path --dry-run
 ```

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -10,6 +11,7 @@ from git import Git, Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 from loguru import logger
 from rich.console import Console
+from rich.markup import escape
 from rich.progress import (
     Progress,
     SpinnerColumn,
@@ -20,6 +22,9 @@ from rich.progress import (
 )
 
 from .gitlab_api import Project
+
+
+ROOT_BUCKET = "root"
 
 
 @dataclass(frozen=True)
@@ -99,17 +104,17 @@ def _clone_fresh(*, project: Project, dest: Path, remote_url: str) -> CloneResul
 def _bucket_for(project: Project, group_root: str) -> str:
     """
     Return top-level child of `group_root` used as a bucket name.
-    Projects directly under root are grouped under '[root]'.
+    Projects directly under root are grouped under 'root'.
     """
     parts = project.path_with_namespace.strip("/").split("/")
     root_parts = group_root.strip("/").split("/")
     if parts[: len(root_parts)] == root_parts:
-        rest = parts[len(root_parts) :]
+        rest = parts[len(root_parts):]
     else:
         rest = parts  # fallback
 
     if len(rest) <= 1:
-        return "[root]"
+        return ROOT_BUCKET
     return rest[0]
 
 
@@ -136,6 +141,10 @@ def clone_all(
     # map project -> bucket for quick lookup
     project_bucket: Dict[int, str] = {p.id: _bucket_for(p, group_root) for p in projs}
 
+    def _bucket_sort_key(item: tuple[str, List[Project]]) -> tuple[int, str]:
+        name, _ = item
+        return (0 if name == ROOT_BUCKET else 1, name.lower())
+
     with Progress(
         SpinnerColumn(),
         TextColumn("{task.description}"),
@@ -145,23 +154,25 @@ def clone_all(
         TimeRemainingColumn(),
         console=console,
     ) as progress:
-        overall = progress.add_task("All projects", total=total)
+        overall = progress.add_task(escape("all projects"), total=total)
+
         sub_tasks: Dict[str, int] = {}
-        for name, items in sorted(buckets.items(), key=lambda x: x[0].lower()):
-            sub_tasks[name] = progress.add_task(f"{name}", total=len(items))
+        for name, items in sorted(buckets.items(), key=_bucket_sort_key):
+            # escape() ensures correct output, even if the name contains [] and others.
+            label = escape(name or ROOT_BUCKET)
+            sub_tasks[name] = progress.add_task(label, total=len(items))
 
         def work(p: Project) -> CloneResult:
             remote = embed_token(p.http_url_to_repo, token_for_clone)
             return clone_or_update(project=p, base_dir=base_dir, remote_url=remote, dry_run=dry_run)
 
-        from concurrent.futures import ThreadPoolExecutor, as_completed  # local import ok
         with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
             futures = {pool.submit(work, p): p for p in projs}
             for fut in as_completed(futures):
                 res = fut.result()
                 results.append(res)
                 progress.advance(overall, 1)
-                bucket_name = project_bucket.get(res.project.id, "[root]")
+                bucket_name = project_bucket.get(res.project.id, ROOT_BUCKET)
                 progress.advance(sub_tasks[bucket_name], 1)
 
     logger.debug("Clone/update completed for {} projects", len(results))

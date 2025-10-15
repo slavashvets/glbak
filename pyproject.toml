@@ -1,5 +1,5 @@
 [project]
-name = "gitlab-backup"
+name = "glbak"
 version = "0.1.0"
 description = "Backup all repositories (all branches) from a GitLab group (including subgroups)."
 readme = "README.md"
@@ -14,10 +14,19 @@ dependencies = [
   "python-gitlab>=4.0.0",
   "GitPython>=3.1.40",
   "rich>=13.7.0",
-  "loguru>=0.7.2"
+  "loguru>=0.7.2",
+  "types-pyyaml>=6.0.12.20250915",
+  "types-pygments>=2.19.0.20250809",
+  "types-requests>=2.32.4.20250913",
+  "types-pysocks>=1.7.1.20251001",
 ]
 
 [project.scripts]
-gitlab-backup = "gitlab_backup.cli:app"
+glbak = "glbak.cli:entrypoint"
 
 [tool.uv]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]

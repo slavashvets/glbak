@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from loguru import logger
 from rich.console import Console
+from loguru import logger
 
 from . import __version__
 from .clone import clone_all
@@ -14,32 +14,29 @@ from .gitlab_api import GitLabClient
 from .logging_utils import setup_logging
 from .settings import Settings
 
-app = typer.Typer(help="Backup all repos (all branches) from a GitLab group (including subgroups).")
 console = Console()
 
 
-@app.callback()
 def main(
-    verbose: bool = typer.Option(False, "--verbose", help="Enable debug logging."),
-) -> None:
-    setup_logging(verbose)
-
-
-@app.command("backup")
-def backup(
     group_path: str = typer.Argument(..., help="Full path of the root GitLab group, e.g. 'company/legacy'."),
+    *,
     base_url: Optional[str] = typer.Option(None, "--base-url", help="GitLab base URL, e.g. https://gitlab.com"),
     dest: Optional[Path] = typer.Option(None, "--dest", help="Destination directory for backups."),
     concurrency: Optional[int] = typer.Option(None, "--concurrency", help="Parallel clones."),
     timeout: Optional[float] = typer.Option(None, "--timeout", help="HTTP timeout seconds."),
     verify_ssl: Optional[bool] = typer.Option(None, "--verify-ssl/--no-verify-ssl", help="Verify TLS certs."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not modify filesystem or run git."),
+    verbose: bool = typer.Option(False, "--verbose", help="Enable debug logging."),
 ) -> None:
-    """Backup a GitLab group and all its projects into local mirror repositories."""
+    """Single-command CLI: `glbak <group_path> [options]`."""
+    setup_logging(verbose)
+
     cfg = Settings()
-    # Apply CLI overrides
     base_url_val = base_url or cfg.base_url
-    dest_dir_val = dest or cfg.dest_dir
+
+    dest_input = str(dest or cfg.dest_dir)
+    dest_dir_val = Path(os.path.expanduser(dest_input)).resolve()
+
     concurrency_val = concurrency if concurrency is not None else cfg.concurrency
     timeout_val = timeout if timeout is not None else cfg.timeout
     verify_ssl_val = verify_ssl if verify_ssl is not None else cfg.verify_ssl
@@ -48,10 +45,10 @@ def backup(
     if not token:
         raise typer.BadParameter("Environment variable GITLAB_TOKEN is required.")
 
-    console.print(f"[bold]gitlab-backup {__version__}[/bold]")
+    console.print(f"[bold]glbak {__version__}[/bold]")
     console.print(f"Base URL: {base_url_val}")
     console.print(f"Group:    {group_path}")
-    console.print(f"Dest:     {dest_dir_val.resolve()}")
+    console.print(f"Dest:     {dest_dir_val}")
     if dry_run:
         console.print("[yellow]Dry run: no changes will be made[/yellow]")
 
@@ -78,12 +75,13 @@ def backup(
         projects=projects,
         base_dir=dest_dir_val,
         token_for_clone=token,
-        concurrency=concurrency_val,
+        concurrency=max(1, concurrency_val),
         dry_run=dry_run,
         console=console,
+        group_root=group_path,
     )
 
-    by_status = {}
+    by_status: dict[str, int] = {}
     for r in results:
         by_status[r.status] = by_status.get(r.status, 0) + 1
 
@@ -99,3 +97,11 @@ def backup(
         raise typer.Exit(code=2)
 
     logger.info("Done")
+
+
+def entrypoint() -> None:
+    typer.run(main)
+
+
+if __name__ == "__main__":
+    entrypoint()

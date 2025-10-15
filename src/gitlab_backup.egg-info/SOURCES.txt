@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/gitlab_backup/__init__.py
+src/gitlab_backup/cli.py
+src/gitlab_backup/clone.py
+src/gitlab_backup/gitlab_api.py
+src/gitlab_backup/logging_utils.py
+src/gitlab_backup/settings.py
+src/gitlab_backup.egg-info/PKG-INFO
+src/gitlab_backup.egg-info/SOURCES.txt
+src/gitlab_backup.egg-info/dependency_links.txt
+src/gitlab_backup.egg-info/entry_points.txt
+src/gitlab_backup.egg-info/requires.txt
+src/gitlab_backup.egg-info/top_level.txt

@@ -1,0 +1,23 @@
+[project]
+name = "gitlab-backup"
+version = "0.1.0"
+description = "Backup all repositories (all branches) from a GitLab group (including subgroups)."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{ name = "Your Name" }]
+license = { text = "MIT" }
+
+dependencies = [
+  "typer>=0.12.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "python-gitlab>=4.0.0",
+  "GitPython>=3.1.40",
+  "rich>=13.7.0",
+  "loguru>=0.7.2"
+]
+
+[project.scripts]
+gitlab-backup = "gitlab_backup.cli:app"
+
+[tool.uv]

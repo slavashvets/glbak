@@ -1,0 +1,44 @@
+Metadata-Version: 2.4
+Name: gitlab-backup
+Version: 0.1.0
+Summary: Backup all repositories (all branches) from a GitLab group (including subgroups).
+Author: Your Name
+License: MIT
+Requires-Python: >=3.13
+Description-Content-Type: text/markdown
+Requires-Dist: typer>=0.12.0
+Requires-Dist: pydantic>=2.8.0
+Requires-Dist: pydantic-settings>=2.4.0
+Requires-Dist: python-gitlab>=4.0.0
+Requires-Dist: GitPython>=3.1.40
+Requires-Dist: rich>=13.7.0
+Requires-Dist: loguru>=0.7.2
+
+# glbak
+
+Simple CLI tool to backup all repositories (all refs) from a GitLab group (including all subgroups)
+into local mirror repositories for archival purposes. Requires `git` and `uv` to be installed.
+
+## Quick start
+
+```bash
+uv tool install .
+gitlab-backup --help
+```
+
+Set `GITLAB_TOKEN` to a Personal Access Token with scopes `read_api` and `read_repository`.
+
+```bash
+export GITLAB_TOKEN=glpat_xxx
+export GLBAK_BASE_URL=https://gitlab.mycompany.com
+
+gitlab-backup my-root/group/path \
+  --base-url https://gitlab.com \
+  --dest ./backups
+```
+
+Dry run:
+
+```bash
+gitlab-backup backup company/legacy --dry-run
+```
